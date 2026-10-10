@@ -1,0 +1,103 @@
+{
+  "_comment": "Illustrative fake data. Shows the Employee → Contact (dependents) and Enrollment → EnrollmentSelection → Contact relationships. Raw SSNs are never stored; only ssnToken + ssnLast4.",
+
+  "employee": {
+    "id": "emp_01HZX9K7Q2N4V8B3A1C5D6E7F8",
+    "employeeNumber": "E-10432",
+    "firstName": "Dana",
+    "middleName": "R",
+    "lastName": "Whitfield",
+    "email": "dana.whitfield@example.com",
+    "phone": "+1-312-555-0148",
+    "dateOfBirth": "1988-04-17",
+    "sex": "female",
+    "ssnToken": "tok_ssn_9f2a1c7b4e",
+    "ssnLast4": "4821",
+    "address": {
+      "line1": "742 Evergreen Terrace",
+      "line2": "Apt 5B",
+      "city": "Chicago",
+      "state": "IL",
+      "postalCode": "60614",
+      "country": "US"
+    },
+    "hireDate": "2021-09-01",
+    "status": "active",
+    "createdAt": "2026-01-05T14:22:03Z",
+    "updatedAt": "2026-10-01T09:10:44Z"
+  },
+
+  "contacts": [
+    {
+      "id": "con_01HZX9M0T5P7R2S4U6W8Y1Z3B5",
+      "employeeId": "emp_01HZX9K7Q2N4V8B3A1C5D6E7F8",
+      "firstName": "Marcus",
+      "lastName": "Whitfield",
+      "dateOfBirth": "1986-11-02",
+      "sex": "male",
+      "relationship": "spouse",
+      "ssnToken": "tok_ssn_3b7d9e2a1f",
+      "ssnLast4": "7193",
+      "livesWithEmployee": true,
+      "address": null,
+      "createdAt": "2026-01-05T14:25:10Z",
+      "updatedAt": "2026-01-05T14:25:10Z"
+    },
+    {
+      "id": "con_01HZX9N3V8Q0S5T7U9W2Y4Z6C8",
+      "employeeId": "emp_01HZX9K7Q2N4V8B3A1C5D6E7F8",
+      "firstName": "Ivy",
+      "lastName": "Whitfield",
+      "dateOfBirth": "2015-06-30",
+      "sex": "female",
+      "relationship": "child",
+      "ssnToken": "tok_ssn_6c1f4b8d2e",
+      "ssnLast4": "3350",
+      "livesWithEmployee": false,
+      "address": {
+        "line1": "18 Lakeside Dr",
+        "line2": null,
+        "city": "Evanston",
+        "state": "IL",
+        "postalCode": "60201",
+        "country": "US"
+      },
+      "createdAt": "2026-01-05T14:27:41Z",
+      "updatedAt": "2026-01-05T14:27:41Z"
+    }
+  ],
+
+  "enrollment": {
+    "id": "enr_01HZXA2F9K3M5P7R9T1V3X5Z7B9",
+    "employeeId": "emp_01HZX9K7Q2N4V8B3A1C5D6E7F8",
+    "periodId": "per_2026_open",
+    "status": "submitted",
+    "selections": [
+      {
+        "planId": "pln_medical_ppo_2026",
+        "kind": "medical",
+        "tier": "employee_family",
+        "coveredContactIds": [
+          "con_01HZX9M0T5P7R2S4U6W8Y1Z3B5",
+          "con_01HZX9N3V8Q0S5T7U9W2Y4Z6C8"
+        ]
+      },
+      {
+        "planId": "pln_dental_basic_2026",
+        "kind": "dental",
+        "tier": "employee_spouse",
+        "coveredContactIds": ["con_01HZX9M0T5P7R2S4U6W8Y1Z3B5"]
+      },
+      {
+        "planId": "pln_vision_2026",
+        "kind": "vision",
+        "tier": "employee_only",
+        "coveredContactIds": []
+      }
+    ],
+    "submittedAt": "2026-10-03T16:40:12Z",
+    "createdAt": "2026-10-03T15:58:00Z",
+    "updatedAt": "2026-10-03T16:40:12Z",
+    "sourceImportId": null
+  }
+}

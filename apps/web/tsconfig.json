@@ -1,0 +1,24 @@
+{
+  "extends": "@benefit/config/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@benefit/ui": ["../../packages/ui/src/index.ts"],
+      "@benefit/ui/*": ["../../packages/ui/src/*"],
+      "@benefit/types": ["../../packages/types/src/index.ts"],
+      "@benefit/types/*": ["../../packages/types/src/*"],
+      "@benefit/data": ["../../packages/data/src/index.ts"],
+      "@benefit/data/*": ["../../packages/data/src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", ".turbo"]
+}
