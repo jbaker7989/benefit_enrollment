@@ -9,9 +9,48 @@ human-readable spec and the canonical **storage schema**.
 
 Employees elect benefits through three ingest paths:
 
-1. **Manual** — interactive enrollment in the web app.
-2. **File import** — bulk upload of enrollment selections (end-of-year).
-3. **API import** — programmatic submission of selections.
+1. **Employee chatbot self-service** — The authenticated employee makes their
+   own selections through a chatbot interface. Requires RBAC role `employee`.
+2. **HR manual input form** — HR personnel create or edit one employee's
+   selections via a web form. Requires RBAC role `hr`.
+3. **HR bulk file upload** — HR personnel upload a file (`.csv` or `.json` per
+   suffix) containing selections for many employees at once. Requires RBAC role
+   `hr`.
+
+The canonical definition of these paths, data-integrity rules, RBAC
+requirements, file-format rules, and chatbot constraints also lives in
+[`.agents/skills/benefit-selection/SKILL.md`](../.agents/skills/benefit-selection/SKILL.md).
+Any change to selection logic must be reflected in both this file and that
+skill.
+
+### Access control (deferred)
+
+Authorization will be implemented with a `roles` table. Required roles:
+
+| Path | Required role | Scope restriction |
+| --- | --- | --- |
+| Employee chatbot self-service | `employee` | Caller may only affect their own `employeeId`. |
+| HR manual input form | `hr` | Can act on any employee. |
+| HR bulk file upload | `hr` | Can act on any employee group. |
+
+### Selection integrity rules
+
+1. **No enrollment without an employee.** Every `enrollments` row must have a
+   valid `employee_id` referencing `employees.id`.
+2. **No contact without an employee.** Every `contacts` row must have a valid
+   `employee_id` referencing `employees.id`.
+3. **No selection referencing an unrelated contact.** Every
+   `enrollment_selection_contacts` row must reference a `contacts.id` whose
+   `employee_id` matches the parent enrollment's `employee_id`.
+
+### File upload rules
+
+- Files must end with `.csv` (comma-separated values) or `.json` (JSON array
+  of enrollment records). The parser is chosen by suffix.
+- Bulk uploads are processed as a batch, creating or updating employees,
+  contacts, and selections atomically per employee.
+- Orphan contacts and orphan selections must never be created. If an employee
+  does not exist, create the employee record first within the same transaction.
 
 Once elections are made (by any path) they are persisted to a **SQLite**
 database so they are referenceable for review, export, and reporting.
