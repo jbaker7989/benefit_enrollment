@@ -28,7 +28,7 @@ dist/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
-data/
+/data/
 
 # misc
 .DS_Store

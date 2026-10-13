@@ -1,0 +1,11 @@
+{
+  "extends": "@benefit/config/tsconfig/base.json",
+  "compilerOptions": {
+    "paths": {
+      "@benefit/types": ["../types/src/index.ts"],
+      "@benefit/types/*": ["../types/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", ".turbo"]
+}
