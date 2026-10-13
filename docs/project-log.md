@@ -22,6 +22,8 @@ means the item is still open.
 | STORY-010 | MCP server scaffold | Add the MCP server (import/export of employee benefits) referenced in AGENTS.md. | P3 | 2026-10-10 | |
 | STORY-011 | API import path | Programmatic enrollment import endpoint + worker. | P3 | 2026-10-10 | |
 | STORY-012 | Wire data layer into web | Use `@benefit/data` from a Next.js route/server action to persist elections. | P2 | 2026-10-10 | |
+| STORY-013 | Test suite + CI gate | Add `bun test` suite (small/integrated/large) for `@benefit/data` incl. BUG-001/002 regressions; wire `test` task into Turbo; add GitHub Actions CI running typecheck/lint/build/test on every PR. | P1 | 2026-10-12 | 2026-10-12 |
+| STORY-014 | QA testing skill | Author `.agents/skills/qa-testing/SKILL.md` defining the small/integrated/large taxonomy and the requirement that every story/bug ships tests; register it in AGENTS.md. | P2 | 2026-10-12 | 2026-10-12 |
 
 ## Bugs
 
