@@ -28,7 +28,7 @@ means the item is still open.
 | Code | Name | Description | Priority | Date found | Date resolved |
 | --- | --- | --- | --- | --- | --- |
 | BUG-001 | Seed not idempotent | `seed-employees.ts:68` uses `randomUUID()` for id but fixed `employeeNumber`; re-run bypasses `ON CONFLICT(id)` and hits `UNIQUE(employee_number)` (SQLite errcode 2067). Verified. Fixed: seed reuses existing row's id via `findByEmployeeNumber`. | P1 | 2026-10-12 | 2026-10-12 |
-| BUG-002 | DB open fails on missing dir | `db.ts openDatabase` throws `unable to open database file` when the parent dir is absent; default path `./data/benefit.sqlite` fails from the app until `data/` exists. Verified. | P1 | 2026-10-12 | |
+| BUG-002 | DB open fails on missing dir | `db.ts openDatabase` throws `unable to open database file` when the parent dir is absent; default path `./data/benefit.sqlite` fails from the app until `data/` exists. Verified. Fixed: `openDatabase` mkdirs the parent dir (skips `:memory:`). | P1 | 2026-10-12 | 2026-10-12 |
 | BUG-003 | Covered contact ownership unchecked | `sqlite.ts makeEnrollmentRepo.save` — `coveredContactIds` are FK-checked for existence only; a selection can cover a contact belonging to another employee. | P3 | 2026-10-12 | |
 | BUG-004 | New-id save vs unique (employee, period) | `save` only does `ON CONFLICT(id)`; saving a new-id enrollment for an existing (employee, period) violates `UNIQUE(employee_id, period_id)`. Fetch-then-reuse-id flow undocumented. | P3 | 2026-10-12 | |
 | BUG-005 | `limit: 0` returns all rows | `sqlite.ts list()` treats `0` as falsy (`params?.limit ? … : ""`), so `limit: 0` returns every row instead of none. | P4 | 2026-10-12 | |
