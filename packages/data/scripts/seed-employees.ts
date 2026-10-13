@@ -88,7 +88,16 @@ const ctx = createDataContext({ path: dbPath });
 
 try {
   for (let i = 0; i < 10; i++) {
-    await ctx.employees.upsert(makeEmployee(i));
+    const draft = makeEmployee(i);
+    // Idempotent re-runs: employee_number is the stable business key, but the
+    // DB upsert keys on `id`. Reuse the existing row's id (and original
+    // createdAt) so a re-seed updates in place instead of colliding on
+    // UNIQUE(employee_number).
+    const existing = await ctx.employees.findByEmployeeNumber(draft.employeeNumber);
+    const employee = existing
+      ? { ...draft, id: existing.id, createdAt: existing.createdAt }
+      : draft;
+    await ctx.employees.upsert(employee);
   }
   console.log("Seeded 10 employees.");
 } finally {
