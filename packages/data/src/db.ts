@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { SCHEMA_SQL } from "./schema";
@@ -9,6 +11,12 @@ export type Db = DatabaseSync;
  * and apply the schema. `:memory:` is supported for tests.
  */
 export function openDatabase(path: string): Db {
+  // Ensure the parent directory exists; DatabaseSync throws "unable to open
+  // database file" rather than creating missing directories. Skip for the
+  // in-memory database, which has no filesystem path.
+  if (path !== ":memory:") {
+    mkdirSync(dirname(path), { recursive: true });
+  }
   const db = new DatabaseSync(path);
   db.exec("PRAGMA foreign_keys = ON;");
   db.exec("PRAGMA journal_mode = WAL;");
