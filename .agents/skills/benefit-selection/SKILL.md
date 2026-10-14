@@ -54,10 +54,22 @@ These rules must be enforced at the storage layer and validated at import time:
    `employee_id` referencing `employees.id`.
 3. **No selection covering a contact that does not belong to the employee.**
    Every `enrollment_selection_contacts` row must reference a `contacts.id`
-   whose `employee_id` matches the parent enrollment's `employee_id`.
+   whose `employee_id` matches the parent enrollment's `employee_id`. Enforced
+   in SQLite by ownership triggers (STORY-030) as well as in the repository.
+4. **No enrollment identity reuse.** An enrollment id already owned by a
+   different `(employee, period)` is rejected before any write; the business key
+   selects the record to update (STORY-030).
+5. **Atomic nested writes.** Repository transactions nest via savepoints, so a
+   caught inner failure never leaves a partial write in the outer transaction
+   (STORY-031).
+6. **Complete separate-residence addresses.** A contact with
+   `livesWithEmployee: false` must have a complete, non-blank address before
+   persistence; values are never fabricated and addresses are never logged
+   (STORY-031).
 
-Prefer SQLite foreign keys and `NOT NULL` constraints for enforcement, and add
-application-level validation for user-facing error messages.
+Prefer SQLite foreign keys, triggers, and `NOT NULL` constraints for
+enforcement, and add application-level validation for user-facing error
+messages. Keep constraint and trigger messages free of employee PII.
 
 ## Bulk upload requirements
 

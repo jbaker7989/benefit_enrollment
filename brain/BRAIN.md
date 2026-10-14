@@ -41,7 +41,17 @@ Authorization will be implemented with a `roles` table. Required roles:
    `employee_id` referencing `employees.id`.
 3. **No selection referencing an unrelated contact.** Every
    `enrollment_selection_contacts` row must reference a `contacts.id` whose
-   `employee_id` matches the parent enrollment's `employee_id`.
+   `employee_id` matches the parent enrollment's `employee_id`. This is enforced
+   in the database by `BEFORE INSERT`/`BEFORE UPDATE` triggers (STORY-030), so a
+   write issued outside `@benefit/data` cannot cross employee ownership; the
+   repository also validates it first for a clear, PII-free error.
+4. **No enrollment identity reuse across records.** A caller-supplied
+   `enrollments.id` that already belongs to a different `(employee_id,
+   period_id)` is rejected before any mutation; the business key
+   `(employee_id, period_id)` selects the record to update (STORY-030).
+5. **Atomic nested writes.** Repository transactions compose via SQLite
+   savepoints, so a caught inner failure rolls back only its own work and the
+   outer transaction never commits an inner partial write (STORY-031).
 
 ### File upload rules
 
@@ -248,7 +258,29 @@ CREATE TABLE IF NOT EXISTS enrollment_selection_contacts (
   contact_id   TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   PRIMARY KEY (selection_id, contact_id)
 ) STRICT;
+
+-- STORY-030: enforce covered-contact ownership in the database itself. A
+-- covered contact must belong to the same employee as the enrollment. The
+-- abort message is generic and leaks no identifiers.
+CREATE TRIGGER IF NOT EXISTS trg_selection_contact_ownership_insert
+BEFORE INSERT ON enrollment_selection_contacts
+FOR EACH ROW
+WHEN (SELECT employee_id FROM contacts WHERE id = NEW.contact_id)
+  IS NOT (SELECT e.employee_id FROM enrollment_selections s
+          JOIN enrollments e ON e.id = s.enrollment_id WHERE s.id = NEW.selection_id)
+BEGIN
+  SELECT RAISE(ABORT, 'covered contact does not belong to the enrollment employee');
+END;
+-- A matching BEFORE UPDATE trigger guards re-pointing an existing row.
 ```
+
+### Schema migration
+
+The schema is applied idempotently on every `openDatabase` (`CREATE … IF NOT
+EXISTS`). The STORY-030 ownership triggers are additive: opening an existing
+database installs them and they guard all subsequent writes. They do not
+retroactively quarantine rows written before they existed — remediating any
+pre-existing violations is tracked separately as STORY-034.
 
 ## Persistence flow
 

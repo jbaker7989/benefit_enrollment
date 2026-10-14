@@ -39,6 +39,7 @@ import type {
   EnrollmentRepository,
 } from "./index";
 import { openDatabase, transaction, type Db } from "./db";
+import { assertContactAddress, assertValidLimit } from "./validation";
 
 const bool = (n: unknown): boolean => n === 1 || n === true;
 const bit = (b: boolean): number => (b ? 1 : 0);
@@ -201,6 +202,7 @@ function makeEmployeeRepo(db: Db): EmployeeRepository {
       return r ? rowToEmployee(r) : null;
     },
     async list(params) {
+      assertValidLimit(params?.limit); // STORY-031: reject negative/non-integer/unsafe limits
       const clauses: string[] = [];
       const args: Array<string | number> = [];
       if (params?.status) {
@@ -260,9 +262,9 @@ function makeContactRepo(db: Db): ContactRepository {
       return rows.map(rowToContact);
     },
     async upsert(c) {
-      if (!c.livesWithEmployee && !c.address) {
-        throw new Error("A contact who does not live with the employee must have an address.");
-      }
+      // STORY-031: a separate-residence contact needs a complete, non-blank
+      // address before persistence, so stored rows always round-trip.
+      assertContactAddress(c);
       const a = c.address;
       upsert.run(
         c.id, c.employeeId, c.firstName, c.lastName, c.dateOfBirth, c.sex,
@@ -480,6 +482,19 @@ function makeEnrollmentRepo(db: Db): EnrollmentRepository {
           enrollment.employeeId,
           enrollment.periodId,
         ) as EnrollmentRow | undefined;
+        if (!existing) {
+          // STORY-030: this is a new enrollment for (employee, period). A
+          // caller-supplied id that already belongs to a *different*
+          // enrollment must not be allowed to hijack that row via ON
+          // CONFLICT(id). Reject before any mutation; the message exposes no
+          // employee or period identifiers.
+          const idOwner = byId.get(enrollment.id) as EnrollmentRow | undefined;
+          if (idOwner) {
+            throw new Error(
+              "Enrollment id is already assigned to a different enrollment and cannot be reused.",
+            );
+          }
+        }
         const persisted = existing
           ? {
               ...enrollment,

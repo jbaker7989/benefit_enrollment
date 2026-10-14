@@ -51,4 +51,25 @@ describe("SCHEMA_SQL (small)", () => {
     const empRefs = SCHEMA_SQL.match(/REFERENCES employees\(id\)/gi) ?? [];
     expect(empRefs.length).toBeGreaterThanOrEqual(2);
   });
+
+  // STORY-030: covered-contact ownership is enforced by database triggers, not
+  // only by the repository, so a direct write cannot cross employee ownership.
+  test("declares covered-contact ownership triggers on insert and update", () => {
+    expect(SCHEMA_SQL).toMatch(
+      /CREATE TRIGGER[^;]*trg_selection_contact_ownership_insert[\s\S]*?BEFORE INSERT ON enrollment_selection_contacts/i,
+    );
+    expect(SCHEMA_SQL).toMatch(
+      /CREATE TRIGGER[^;]*trg_selection_contact_ownership_update[\s\S]*?BEFORE UPDATE ON enrollment_selection_contacts/i,
+    );
+  });
+
+  test("ownership trigger aborts and leaks no identifiers in its message", () => {
+    const triggers = SCHEMA_SQL.match(/CREATE TRIGGER[\s\S]*?END;/gi) ?? [];
+    expect(triggers.length).toBeGreaterThanOrEqual(2);
+    for (const trigger of triggers) {
+      expect(trigger).toMatch(/RAISE\(ABORT,\s*'covered contact does not belong to the enrollment employee'\)/i);
+      // The message must not interpolate NEW.* values (no PII / identifiers).
+      expect(trigger).not.toMatch(/RAISE\([^)]*NEW\./i);
+    }
+  });
 });
