@@ -2,7 +2,7 @@
 
 - **Owner:** Product and Engineering
 - **Status:** Proposed delivery backlog
-- **Last updated:** 2026-10-13
+- **Last updated:** 2026-10-14
 - **Audience:** Product, Design, Engineering, HR operations, Security
 - **Related decisions:** ADR 0001; `brain/BRAIN.md`; UI proposals in `docs/review-artifacts/`
 - **Next review trigger:** Before committing to the first employee or HR production pilot
@@ -56,9 +56,10 @@ Cross-cutting release work: STORY-026 accessibility, STORY-027 auditability,
 STORY-028 reporting, STORY-029 pilot readiness.
 
 Review follow-ons: STORY-030 and STORY-031 must land before any new write
-path; STORY-032 gates the import worker; STORY-033 extends the plan/period
-work before selections are exposed; STORY-034 is required before a pilot uses
-an existing database.
+path; STORY-048 and STORY-049 close uncovered storage-invariant paths before
+those writes can be trusted; STORY-032 gates the import worker; STORY-033
+extends the plan/period work before selections are exposed; STORY-034 is
+required before a pilot uses an existing database.
 ```
 
 ## Existing open stories to refine before implementation
@@ -538,6 +539,68 @@ missing address or enrollment data during migration.
 integrated fixtures for valid upgrade, invalid legacy address, cross-employee
 coverage, and idempotent re-run; large upgrade rehearsal against a temporary
 on-disk database before pilot.
+
+### STORY-048 Complete enrollment-ID collision rejection
+
+**Priority:** P1
+**Outcome:** A caller-supplied enrollment ID that belongs to a different
+enrollment is always rejected before any mutation, including when the supplied
+employee/period business key already exists.
+
+**Scope:** Complete the STORY-030 identity guard. Check supplied enrollment-ID
+ownership independently of whether `(employeeId, periodId)` resolves to an
+existing record. Retain the documented behavior that a genuinely new supplied
+ID is ignored in favor of the canonical ID for an existing business key, but
+never let an ID already owned by another record be silently accepted. Keep
+errors generic and free of employee, period, and enrollment identifiers.
+
+**Acceptance criteria:**
+
+- Saving an absent employee/period pair with an ID owned elsewhere fails
+  without mutating any enrollment.
+- Saving an existing employee/period pair while supplying an ID owned by a
+  different enrollment also fails without changing either record or its
+  selections.
+- Saving an existing employee/period pair with a new, unassigned supplied ID
+  still updates the canonical enrollment selected by the business key.
+- The identity behavior is documented consistently in `brain/BRAIN.md` and
+  `.agents/skills/benefit-selection/SKILL.md`.
+
+**Test plan:** Small identity-resolution tests; integrated in-memory SQLite
+regressions for both collision paths, no-mutation assertions, and the valid
+new-ID update path. Add a large regression if an API or import entrypoint is
+changed to expose this save operation.
+
+### STORY-049 Preserve covered-contact ownership across parent updates
+
+**Priority:** P1
+**Outcome:** Once coverage is linked, no supported repository operation or
+direct SQLite update can make the covered contact belong to a different
+employee than the parent enrollment.
+
+**Scope:** Complete the STORY-030 database invariant for transitive updates.
+Guard the ownership-changing columns on `contacts`, `enrollments`, and
+`enrollment_selections`, in addition to insert/update of
+`enrollment_selection_contacts`; or use an equivalent schema design that makes
+an invalid state unrepresentable. Ensure contact reassignment has an explicit,
+safe policy when the contact is already covered. Constraint errors must remain
+generic and contain no PII.
+
+**Acceptance criteria:**
+
+- Reassigning a covered contact to another employee is rejected atomically;
+  the original coverage link remains valid and unchanged.
+- Direct updates that change an enrollment's employee or a selection's parent
+  cannot create cross-employee coverage.
+- Valid contact edits that do not alter ownership, and valid same-employee
+  coverage writes, continue to succeed.
+- The canonical schema and selection-integrity documentation enumerate every
+  guarded mutation path.
+
+**Test plan:** Small schema-trigger/constraint tests; integrated in-memory
+SQLite regressions for repository contact reassignment and raw-SQL parent-row
+updates, including no-mutation assertions and valid control cases. Add a large
+test if a write entrypoint is introduced or changed.
 
 ### STORY-035 Delivery branch governance and protected merging
 
