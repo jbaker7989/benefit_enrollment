@@ -55,6 +55,32 @@ These rules must be enforced at the storage layer and validated at import time:
 3. **No selection covering a contact that does not belong to the employee.**
    Every `enrollment_selection_contacts` row must reference a `contacts.id`
    whose `employee_id` matches the parent enrollment's `employee_id`.
+4. **No enrollment identity reuse.** Resolve a submitted enrollment by its
+   `(employee_id, period_id)` business key, but validate a caller-supplied
+   enrollment ID *first*. If that ID is already owned by any different
+   enrollment, reject the request before mutation—even when the submitted
+   business key already identifies an existing enrollment. A new, unassigned
+   caller ID may be replaced with the canonical ID for the existing business
+   key.
+
+### Relational-invariant mutation audit
+
+For every relational invariant, identify and protect every mutation that can
+make an already-valid relationship invalid. Checking only the join-table insert
+is insufficient.
+
+For covered-contact ownership, enforcement must guard:
+
+- inserts and updates to `enrollment_selection_contacts`;
+- `contacts.employee_id` changes, including repository upserts that reassign a
+  contact;
+- `enrollments.employee_id` changes; and
+- `enrollment_selections.enrollment_id` changes.
+
+Use SQLite triggers or an equivalent schema design to make invalid states
+unrepresentable. A covered contact must not be reassigned to another employee
+unless the affected coverage is removed or safely migrated in the same
+transaction. Constraint and validation errors must be generic and PII-free.
 
 Prefer SQLite foreign keys and `NOT NULL` constraints for enforcement, and add
 application-level validation for user-facing error messages.

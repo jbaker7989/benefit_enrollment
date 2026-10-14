@@ -97,6 +97,24 @@ A change is **not done** until its tests exist and pass. Record the item in
   the [`benefit-selection`](../benefit-selection/SKILL.md) skill (no orphan
   contacts/selections; a selection may only cover the employee's own contacts).
 
+### Relational-invariant regression matrix
+
+When a story adds or changes a database trigger, constraint, ownership rule,
+or business-key/identifier rule, add integrated tests that cover every relevant
+mutation path—not just the write that first creates the relationship:
+
+- valid control case;
+- rejected repository write, with assertions that no affected row changed;
+- rejected direct-SQL write, where callers outside the repository could bypass
+  application validation; and
+- each related parent or intermediary update that could invalidate the
+  relationship after it was valid (for example, contact ownership,
+  enrollment ownership, or selection parent changes).
+
+For caller-supplied identifiers, test both an absent and an already-existing
+business key, including the case where the supplied ID belongs to another
+record. Name the regression after its `STORY-###` or `BUG-###` code.
+
 ## Running tests
 
 ```bash
