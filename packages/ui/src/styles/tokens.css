@@ -1,0 +1,44 @@
+/**
+ * Mission-control design tokens.
+ *
+ * Green is reserved for success/status only; primary interactive actions use a
+ * distinct color so status is never communicated by color alone.
+ */
+
+:root {
+  /* mission-control palette */
+  --mc-bg: #f8f9fb;
+  --mc-surface: #ffffff;
+  --mc-sky: #ddf3f4;
+  --mc-ink: #1a1d23;
+  --mc-ink-secondary: #5b6270;
+  --mc-border: #d5d8de;
+  --mc-primary: #2563eb;          /* primary action */
+  --mc-primary-hover: #1d4ed8;
+  --mc-success: #16a34a;          /* success / status */
+  --mc-success-bg: #dcfce7;
+  --mc-warning: #ca8a04;
+  --mc-warning-bg: #fef9c3;
+  --mc-error: #dc2626;
+  --mc-error-bg: #fee2e2;
+  --mc-disabled: #9ca3af;
+  --mc-focus: #2563eb;
+  --mc-guide-accent: #22c55e;     /* spaceship status lights */
+
+  /* motion */
+  --mc-motion-duration: 300ms;
+}
+
+.mc-guide-light {
+  animation: mc-guide-pulse calc(var(--mc-motion-duration) * 4) ease-in-out infinite;
+}
+
+@keyframes mc-guide-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mc-motion-duration: 0ms;
+  }
+}

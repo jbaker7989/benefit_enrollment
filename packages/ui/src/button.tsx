@@ -6,8 +6,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Minimal starter button for the shared UI package. Styling is intentionally
- * light — swap in the design system (e.g. shadcn/ui) when it lands.
+ * Shared action button. Green is intentionally not used for primary actions:
+ * it is reserved for completed/success status throughout the enrollment UI.
  */
 export function Button({
   variant = "primary",
@@ -16,11 +16,11 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50";
+    "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--mc-focus)] disabled:cursor-not-allowed disabled:opacity-50";
   const styles =
     variant === "primary"
-      ? "bg-foreground text-background hover:opacity-90"
-      : "border border-black/10 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10";
+      ? "bg-[var(--mc-primary)] text-white hover:bg-[var(--mc-primary-hover)]"
+      : "border border-[var(--mc-border)] bg-white text-[var(--mc-ink)] hover:bg-[var(--mc-bg)]";
   return (
     <button className={[base, styles, className].filter(Boolean).join(" ")} {...props}>
       {children}
