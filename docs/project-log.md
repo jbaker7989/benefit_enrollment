@@ -57,6 +57,8 @@ means the item is still open.
 | STORY-045 | Import Control Panel preflight and no-records-imported state | Four-stage lifecycle scaffold; file-chosen (CSV/JSON, replace/cancel, no hidden upload) and explicit no-records-committed preflight with validation progress. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
 | STORY-046 | Import row-error review and pre-import review | Row-error view with counts and safe corrective actions, return-to-review, and no import proceeding while rows need attention. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
 | STORY-047 | Completed import result and batch-history link | Completed stage showing reconciled totals, completion time, and a link to deferred batch history; UI does not recompute counts. Details: `docs/product-backlog.md`. | P2 | 2026-10-13 | |
+| STORY-048 | Complete enrollment-ID collision rejection | Reject a supplied enrollment ID owned by another record even when the submitted employee/period business key already exists; preserve the valid new-ID canonical-update behavior. Details: `docs/product-backlog.md`. | P1 | 2026-10-14 | |
+| STORY-049 | Preserve covered-contact ownership across parent updates | Prevent repository and direct-SQL updates to contacts, enrollments, or selections from creating cross-employee covered-contact links. Details: `docs/product-backlog.md`. | P1 | 2026-10-14 | |
 
 ## Bugs
 
