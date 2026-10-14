@@ -26,6 +26,10 @@ export function openDatabase(path: string): Db {
 
 /** Run `fn` inside a transaction, rolling back on any error. */
 export function transaction<T>(db: Db, fn: () => T): T {
+  // Repository methods compose transactions. The outermost caller owns the
+  // boundary; an error from an inner operation still propagates and rolls the
+  // entire unit of work back.
+  if (db.isTransaction) return fn();
   db.exec("BEGIN");
   try {
     const result = fn();

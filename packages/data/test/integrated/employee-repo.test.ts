@@ -66,4 +66,9 @@ describe("EmployeeRepository (integrated, in-memory)", () => {
     expect((await ctx.employees.list({ status: "active" })).length).toBe(1);
     expect((await ctx.employees.list()).length).toBe(2);
   });
+
+  test("limit zero returns no employees (BUG-005)", async () => {
+    await ctx.employees.upsert(makeEmployee({ employeeNumber: "EMP-001" }));
+    expect(await ctx.employees.list({ limit: 0 })).toEqual([]);
+  });
 });

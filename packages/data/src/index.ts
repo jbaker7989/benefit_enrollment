@@ -20,6 +20,7 @@ import type {
   EnrollmentPeriod,
   EnrollmentPeriodId,
   ImportId,
+  ImportRowError,
   ImportStatus,
   PlanId,
 } from "@benefit/types";
@@ -66,6 +67,8 @@ export interface EnrollmentImportRepository {
   ): Promise<EnrollmentImport>;
   findById(id: ImportId): Promise<EnrollmentImport | null>;
   updateStatus(id: ImportId, status: ImportStatus): Promise<void>;
+  addRowError(importId: ImportId, error: ImportRowError): Promise<void>;
+  listRowErrors(importId: ImportId): Promise<ImportRowError[]>;
 }
 
 /** The composition root the app wires up once at startup. */

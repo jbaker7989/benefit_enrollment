@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { openDatabase } from "../../src/db";
+import { openDatabase, transaction } from "../../src/db";
 
 describe("openDatabase (integrated, filesystem)", () => {
   const tempRoots: string[] = [];
@@ -33,5 +33,20 @@ describe("openDatabase (integrated, filesystem)", () => {
     const db = openDatabase(":memory:");
     expect(() => db.exec("SELECT 1;")).not.toThrow();
     db.close();
+  });
+
+  test("can compose nested transactions (BUG-006)", () => {
+    const db = openDatabase(":memory:");
+    try {
+      expect(() => {
+        transaction(db, () => {
+          db.exec("CREATE TABLE entries (value TEXT NOT NULL) STRICT;");
+          transaction(db, () => db.exec("INSERT INTO entries (value) VALUES ('saved');"));
+        });
+      }).not.toThrow();
+      expect(db.prepare("SELECT value FROM entries").get()).toEqual({ value: "saved" });
+    } finally {
+      db.close();
+    }
   });
 });

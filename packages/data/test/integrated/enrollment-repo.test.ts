@@ -93,4 +93,48 @@ describe("EnrollmentRepository (integrated, in-memory)", () => {
 
     await expect(ctx.enrollments.save(enrollment)).rejects.toThrow();
   });
+
+  // BUG-003 — a valid contact may still belong to a different employee and
+  // therefore must not be covered by this employee's election.
+  test("rejects a covered contact owned by a different employee without changing the enrollment (BUG-003)", async () => {
+    const { emp, child, plan, period } = await seedGraph();
+    const original = makeEnrollment(emp.id, period.id, {
+      selections: [{ planId: plan.id, kind: "medical", tier: "employee_children", coveredContactIds: [child.id] }],
+    });
+    await ctx.enrollments.save(original);
+
+    const otherEmployee = makeEmployee();
+    await ctx.employees.upsert(otherEmployee);
+    const otherChild = makeContact(otherEmployee.id, { relationship: "child" });
+    await ctx.contacts.upsert(otherChild);
+
+    await expect(
+      ctx.enrollments.save({
+        ...original,
+        selections: [{ planId: plan.id, kind: "medical", tier: "employee_children", coveredContactIds: [otherChild.id] }],
+      }),
+    ).rejects.toThrow("does not belong to employee");
+
+    expect(await ctx.enrollments.findById(original.id)).toEqual(original);
+  });
+
+  // BUG-004 — callers can legitimately construct a fresh id when updating an
+  // existing employee/period; the business key must still select one record.
+  test("updates an existing employee and period when the caller provides a new id (BUG-004)", async () => {
+    const { emp, plan, period } = await seedGraph();
+    const first = makeEnrollment(emp.id, period.id, {
+      selections: [{ planId: plan.id, kind: "medical", tier: "employee_only", coveredContactIds: [] }],
+    });
+    await ctx.enrollments.save(first);
+
+    const replacement = makeEnrollment(emp.id, period.id, {
+      status: "submitted",
+      selections: [{ planId: plan.id, kind: "medical", tier: "waived", coveredContactIds: [] }],
+    });
+    const saved = await ctx.enrollments.save(replacement);
+
+    expect(saved.id).toBe(first.id);
+    expect((await ctx.enrollments.findForEmployee(emp.id, period.id))?.id).toBe(first.id);
+    expect((await ctx.enrollments.findForEmployee(emp.id, period.id))?.status).toBe("submitted");
+  });
 });

@@ -24,6 +24,21 @@ means the item is still open.
 | STORY-012 | Wire data layer into web | Use `@benefit/data` from a Next.js route/server action to persist elections. | P2 | 2026-10-10 | |
 | STORY-013 | Test suite + CI gate | Add `bun test` suite (small/integrated/large) for `@benefit/data` incl. BUG-001/002 regressions; wire `test` task into Turbo; add GitHub Actions CI running typecheck/lint/build/test on every PR. | P1 | 2026-10-12 | 2026-10-12 |
 | STORY-014 | QA testing skill | Author `.agents/skills/qa-testing/SKILL.md` defining the small/integrated/large taxonomy and the requirement that every story/bug ships tests; register it in AGENTS.md. | P2 | 2026-10-12 | 2026-10-12 |
+| STORY-015 | Data integrity and repository corrective release | Resolve BUG-003 through BUG-009; enforce contact ownership and reliable persistence/import repository behavior. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | 2026-10-13 |
+| STORY-016 | Benefit catalog and enrollment period administration | Manage active plans, premiums, and valid enrollment windows. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-017 | Authentication authorization and role enforcement | Select auth and enforce employee self-only and HR access server-side. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-018 | Security privacy retention and audit decision | Define PII handling, retention, audit, deployment, and vendor review requirements. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-019 | HR file upload intake | Secure CSV/JSON upload, storage reference, lifecycle status, and error presentation. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-020 | Import parsing validation and error reporting | Normalize CSV/JSON, validate rows, and persist/retrieve actionable row errors. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-021 | Atomic import worker and batch reconciliation | Process each employee atomically, reconcile batch results, and make retries safe. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-022 | HR manual enrollment workspace | Implement the approved HR form-first workspace with its upper-right import area. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-023 | Employee self service enrollment | Implement scoped guided employee enrollment, comparisons, review, and confirmation. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
+| STORY-024 | AI provider governance and Jev feasibility spike | Evaluate provider fit, privacy/security, cost, and Jev's decision-layer role using synthetic data. Details: `docs/product-backlog.md`. | P2 | 2026-10-13 | |
+| STORY-025 | AI guided conversation guardrails and fallback | Add optional provider integration with strict scope, confidence thresholds, deterministic fallback, and PII controls. Details: `docs/product-backlog.md`. | P2 | 2026-10-13 | |
+| STORY-026 | Accessibility responsive behavior and design system hardening | Make selected experiences accessible and reusable across supported viewports. Details: `docs/product-backlog.md`. | P2 | 2026-10-13 | |
+| STORY-027 | Audit history and operational observability | Trace enrollment/import outcomes safely and monitor failures without PII logs. Details: `docs/product-backlog.md`. | P2 | 2026-10-13 | |
+| STORY-028 | Enrollment review export and reporting | Deliver authorized enrollment review, export, and reporting. Details: `docs/product-backlog.md`. | P3 | 2026-10-13 | |
+| STORY-029 | Pilot release readiness and end to end acceptance | Prepare and approve the first employer pilot across every enabled entrypoint. Details: `docs/product-backlog.md`. | P1 | 2026-10-13 | |
 
 ## Bugs
 
@@ -31,10 +46,10 @@ means the item is still open.
 | --- | --- | --- | --- | --- | --- |
 | BUG-001 | Seed not idempotent | `seed-employees.ts:68` uses `randomUUID()` for id but fixed `employeeNumber`; re-run bypasses `ON CONFLICT(id)` and hits `UNIQUE(employee_number)` (SQLite errcode 2067). Verified. Fixed: seed reuses existing row's id via `findByEmployeeNumber`. | P1 | 2026-10-12 | 2026-10-12 |
 | BUG-002 | DB open fails on missing dir | `db.ts openDatabase` throws `unable to open database file` when the parent dir is absent; default path `./data/benefit.sqlite` fails from the app until `data/` exists. Verified. Fixed: `openDatabase` mkdirs the parent dir (skips `:memory:`). | P1 | 2026-10-12 | 2026-10-12 |
-| BUG-003 | Covered contact ownership unchecked | `sqlite.ts makeEnrollmentRepo.save` — `coveredContactIds` are FK-checked for existence only; a selection can cover a contact belonging to another employee. | P3 | 2026-10-12 | |
-| BUG-004 | New-id save vs unique (employee, period) | `save` only does `ON CONFLICT(id)`; saving a new-id enrollment for an existing (employee, period) violates `UNIQUE(employee_id, period_id)`. Fetch-then-reuse-id flow undocumented. | P3 | 2026-10-12 | |
-| BUG-005 | `limit: 0` returns all rows | `sqlite.ts list()` treats `0` as falsy (`params?.limit ? … : ""`), so `limit: 0` returns every row instead of none. | P4 | 2026-10-12 | |
-| BUG-006 | `transaction()` not reentrant | `db.ts transaction()` issues a bare `BEGIN`; `plans.upsert`/`enrollments.save` cannot be composed inside an outer transaction (nested BEGIN errors). | P4 | 2026-10-12 | |
-| BUG-007 | Seed script untype-checked | `scripts/` is outside tsconfig `include`, so `noUncheckedIndexedAccess` never flags `cities[index]` etc.; runtime-safe only for indices 0–9. | P4 | 2026-10-12 | |
-| BUG-008 | `import_row_errors` unreachable | `EnrollmentImportRepository` has no method to write/read row errors, so the table and `ImportRowError` type are unusable. | P4 | 2026-10-12 | |
-| BUG-009 | Contact address fabricated | `sqlite.ts rowToContact` fills empty-string `line1/city/state/postalCode` when `lives_with_employee=0` but address columns are NULL, masking bad data. | P4 | 2026-10-12 | |
+| BUG-003 | Covered contact ownership unchecked | Fixed: enrollment saves validate every covered contact belongs to the enrollment employee before mutation; regression test verifies no partial update. | P3 | 2026-10-12 | 2026-10-13 |
+| BUG-004 | New-id save vs unique (employee, period) | Fixed: saves resolve the existing employee/period record and reuse its canonical ID; regression test covers a caller-provided new ID. | P3 | 2026-10-12 | 2026-10-13 |
+| BUG-005 | `limit: 0` returns all rows | Fixed: list checks `limit !== undefined`, so zero is honored; regression test added. | P4 | 2026-10-12 | 2026-10-13 |
+| BUG-006 | `transaction()` not reentrant | Fixed: nested repository transactions participate in the outer transaction; regression test covers composition. | P4 | 2026-10-12 | 2026-10-13 |
+| BUG-007 | Seed script untype-checked | Fixed: scripts are included in the package TypeScript project and seed-data indexing is checked; regression test added. | P4 | 2026-10-12 | 2026-10-13 |
+| BUG-008 | `import_row_errors` unreachable | Fixed: import repository now writes and retrieves row errors; integrated persistence regression test added. | P4 | 2026-10-12 | 2026-10-13 |
+| BUG-009 | Contact address fabricated | Fixed: contacts living apart require an address on write and incomplete stored addresses raise an error rather than becoming fabricated fields; regression test added. | P4 | 2026-10-12 | 2026-10-13 |

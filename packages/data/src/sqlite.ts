@@ -19,6 +19,7 @@ import type {
   EnrollmentSelection,
   EnrollmentStatus,
   ImportId,
+  ImportRowError,
   ImportSource,
   ImportStatus,
   IsoDate,
@@ -121,15 +122,19 @@ function rowToEmployee(r: EmployeeRow): Employee {
 }
 
 function rowToContact(r: ContactRow): Contact {
-  const address: Address | null = bool(r.lives_with_employee)
+  const livesWithEmployee = bool(r.lives_with_employee);
+  if (!livesWithEmployee && (!r.address_line1 || !r.city || !r.state || !r.postal_code || !r.country)) {
+    throw new Error(`Contact ${r.id} does not live with employee and has an incomplete address.`);
+  }
+  const address: Address | null = livesWithEmployee
     ? null
     : {
-        line1: r.address_line1 ?? "",
+        line1: r.address_line1!,
         line2: r.address_line2,
-        city: r.city ?? "",
-        state: r.state ?? "",
-        postalCode: r.postal_code ?? "",
-        country: r.country ?? "US",
+        city: r.city!,
+        state: r.state!,
+        postalCode: r.postal_code!,
+        country: r.country!,
       };
   return {
     id: r.id as ContactId,
@@ -141,7 +146,7 @@ function rowToContact(r: ContactRow): Contact {
     relationship: r.relationship as ContactRelationship,
     ssnToken: r.ssn_token,
     ssnLast4: r.ssn_last4,
-    livesWithEmployee: bool(r.lives_with_employee),
+    livesWithEmployee,
     address,
     createdAt: r.created_at as IsoDateTime,
     updatedAt: r.updated_at as IsoDateTime,
@@ -203,8 +208,8 @@ function makeEmployeeRepo(db: Db): EmployeeRepository {
         args.push(params.status);
       }
       const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const limit = params?.limit ? "LIMIT ?" : "";
-      if (params?.limit) args.push(params.limit);
+      const limit = params?.limit !== undefined ? "LIMIT ?" : "";
+      if (params?.limit !== undefined) args.push(params.limit);
       const rows = db
         .prepare(`SELECT * FROM employees ${where} ORDER BY last_name, first_name ${limit}`)
         .all(...args) as unknown as EmployeeRow[];
@@ -255,6 +260,9 @@ function makeContactRepo(db: Db): ContactRepository {
       return rows.map(rowToContact);
     },
     async upsert(c) {
+      if (!c.livesWithEmployee && !c.address) {
+        throw new Error("A contact who does not live with the employee must have an address.");
+      }
       const a = c.address;
       upsert.run(
         c.id, c.employeeId, c.firstName, c.lastName, c.dateOfBirth, c.sex,
@@ -404,6 +412,9 @@ function makeEnrollmentRepo(db: Db): EnrollmentRepository {
   const coveredFor = db.prepare(
     "SELECT contact_id FROM enrollment_selection_contacts WHERE selection_id = ?",
   );
+  const ownedContact = db.prepare(
+    "SELECT id FROM contacts WHERE id = ? AND employee_id = ?",
+  );
 
   interface EnrollmentRow {
     id: string;
@@ -456,21 +467,46 @@ function makeEnrollmentRepo(db: Db): EnrollmentRepository {
     },
     async save(enrollment) {
       transaction(db, () => {
+        // Validate ownership before mutating the enrollment. A contact can be
+        // foreign-key valid yet still belong to another employee.
+        for (const selection of enrollment.selections) {
+          for (const contactId of selection.coveredContactIds) {
+            if (!ownedContact.get(contactId, enrollment.employeeId)) {
+              throw new Error(`Covered contact ${contactId} does not belong to employee ${enrollment.employeeId}.`);
+            }
+          }
+        }
+        const existing = byEmployeePeriod.get(
+          enrollment.employeeId,
+          enrollment.periodId,
+        ) as EnrollmentRow | undefined;
+        const persisted = existing
+          ? {
+              ...enrollment,
+              id: existing.id as EnrollmentId,
+              createdAt: existing.created_at as IsoDateTime,
+            }
+          : enrollment;
         upsertEnrollment.run(
-          enrollment.id, enrollment.employeeId, enrollment.periodId,
-          enrollment.status, enrollment.submittedAt, enrollment.sourceImportId,
-          enrollment.createdAt, enrollment.updatedAt,
+          persisted.id, persisted.employeeId, persisted.periodId,
+          persisted.status, persisted.submittedAt, persisted.sourceImportId,
+          persisted.createdAt, persisted.updatedAt,
         );
-        delSelections.run(enrollment.id);
-        for (const sel of enrollment.selections) {
+        delSelections.run(persisted.id);
+        for (const sel of persisted.selections) {
           const selectionId = randomUUID();
-          insSelection.run(selectionId, enrollment.id, sel.planId, sel.kind, sel.tier);
+          insSelection.run(selectionId, persisted.id, sel.planId, sel.kind, sel.tier);
           for (const contactId of sel.coveredContactIds) {
             insCovered.run(selectionId, contactId);
           }
         }
       });
-      return enrollment;
+      const saved = byEmployeePeriod.get(
+        enrollment.employeeId,
+        enrollment.periodId,
+      ) as EnrollmentRow | undefined;
+      if (!saved) throw new Error("Enrollment save completed without a persisted enrollment.");
+      return hydrate(saved);
     },
   };
 }
@@ -486,6 +522,16 @@ function makeImportRepo(db: Db): EnrollmentImportRepository {
     "UPDATE enrollment_imports SET status = ? WHERE id = ?",
   );
   const byId = db.prepare("SELECT * FROM enrollment_imports WHERE id = ?");
+  const insRowError = db.prepare(`
+    INSERT INTO import_row_errors (import_id, row_number, column_name, code, message)
+    VALUES (?,?,?,?,?)
+  `);
+  const rowErrorsFor = db.prepare(`
+    SELECT row_number, column_name, code, message
+    FROM import_row_errors
+    WHERE import_id = ?
+    ORDER BY row_number, column_name, code
+  `);
 
   interface ImportRow {
     id: string;
@@ -538,6 +584,23 @@ function makeImportRepo(db: Db): EnrollmentImportRepository {
     },
     async updateStatus(id, status) {
       setStatus.run(status, id);
+    },
+    async addRowError(importId, error) {
+      insRowError.run(importId, error.row, error.column, error.code, error.message);
+    },
+    async listRowErrors(importId) {
+      const rows = rowErrorsFor.all(importId) as Array<{
+        row_number: number;
+        column_name: string | null;
+        code: string;
+        message: string;
+      }>;
+      return rows.map((row) => ({
+        row: row.row_number,
+        column: row.column_name,
+        code: row.code,
+        message: row.message,
+      }));
     },
   };
 }

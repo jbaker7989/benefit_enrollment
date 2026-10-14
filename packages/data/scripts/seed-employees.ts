@@ -12,7 +12,7 @@ import { dirname, resolve } from "node:path";
 
 import type { Address, Employee, EmployeeId, EmploymentStatus, IsoDate, IsoDateTime, Sex } from "@benefit/types";
 
-import { createDataContext } from "../src/index.ts";
+import { createDataContext } from "../src/index";
 
 const dbPath = resolve(process.env.BENEFIT_DB_PATH ?? "./data/benefit.sqlite");
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -51,6 +51,14 @@ function makeEmployee(index: number): Employee {
   const hireMonth = 1 + Math.floor(Math.random() * 12);
   const hireDay = 1 + Math.floor(Math.random() * 28);
   const location = cities[index];
+  const firstName = firstNames[index];
+  const middleName = middleNames[index];
+  const lastName = lastNames[index];
+  const sex = sexes[index % sexes.length];
+  const status = statuses[index];
+  if (!location || !firstName || !middleName || !lastName || !sex || !status) {
+    throw new RangeError(`No seed data is configured for employee index ${index}.`);
+  }
   const address: Address = {
     line1: `${1000 + index * 123} Main St`,
     line2: index % 3 === 0 ? `Apt ${100 + index}` : null,
@@ -59,8 +67,6 @@ function makeEmployee(index: number): Employee {
     postalCode: location.postalCode,
     country: "US",
   };
-  const firstName = firstNames[index];
-  const lastName = lastNames[index];
   const employeeNumber = `EMP-${String(index + 1).padStart(3, "0")}`;
   const now = isoDateTime();
 
@@ -68,17 +74,17 @@ function makeEmployee(index: number): Employee {
     id: randomUUID() as EmployeeId,
     employeeNumber,
     firstName,
-    middleName: middleNames[index],
+    middleName,
     lastName,
     email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
     phone: `555-01${index + 10}`,
     dateOfBirth: isoDate(dobYear, dobMonth, dobDay),
-    sex: sexes[index % sexes.length],
+    sex,
     ssnToken: randomUUID(),
     ssnLast4: `${1000 + Math.floor(Math.random() * 9000)}`,
     address,
     hireDate: isoDate(hireYear, hireMonth, hireDay),
-    status: statuses[index],
+    status,
     createdAt: now,
     updatedAt: now,
   };
