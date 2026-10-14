@@ -1,2 +1,12 @@
 export { Button } from "./button";
 export type { ButtonProps } from "./button";
+export { Card } from "./components/card";
+export type { CardProps } from "./components/card";
+export { OrbitEnrollment, buildEnrollmentSummary, classifyEmployeePrompt, getStepPosition } from "./components/orbit-enrollment";
+export type { EnrollmentPlan, EnrollmentSummary, OrbitEnrollmentProps, OrbitStep } from "./components/orbit-enrollment";
+export { OrbitGuide } from "./components/orbit-guide";
+export type { OrbitGuideProps } from "./components/orbit-guide";
+export { StatusBadge } from "./components/status-badge";
+export type { StatusBadgeProps, StatusKind } from "./components/status-badge";
+export { StepIndicator } from "./components/step-indicator";
+export type { Step, StepIndicatorProps } from "./components/step-indicator";

@@ -15,6 +15,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  branch-name:
+    name: delivery branch name
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a story or bug code in the source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ ! "$HEAD_REF" =~ (^|[-_/])(story|bug)-[0-9]{3}([-_/]|$) ]]; then
+            echo "Pull-request branch '$HEAD_REF' must include STORY-### or BUG-### (for example, story-015-data-integrity)."
+            exit 1
+          fi
+
   verify:
     name: typecheck · lint · build · test
     runs-on: ubuntu-latest

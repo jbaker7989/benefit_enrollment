@@ -1,22 +1,16 @@
-import { Button } from "@benefit/ui";
-import type { BenefitKind } from "@benefit/types";
+import { OrbitEnrollment, type EnrollmentPlan } from "@benefit/ui";
 
-const KINDS: BenefitKind[] = ["medical", "dental", "vision"];
+const PLANS: EnrollmentPlan[] = [
+  { id: "value-ppo", name: "Value PPO", description: "Lower premium with a higher deductible.", payrollDeductionCents: 8400 },
+  { id: "choice-ppo", name: "Choice PPO", description: "More predictable costs when you need care.", payrollDeductionCents: 12200 },
+];
 
 export default function Home() {
   return (
-    <main className="flex flex-1 w-full max-w-3xl mx-auto flex-col items-start justify-center gap-6 py-32 px-8">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        Benefit Enrollment
-      </h1>
-      <p className="text-zinc-600 dark:text-zinc-400">
-        Monorepo scaffold is live. Available benefit kinds:{" "}
-        {KINDS.join(", ")}.
-      </p>
-      <div className="flex gap-3">
-        <Button>Start enrollment</Button>
-        <Button variant="secondary">Upload file</Button>
-      </div>
-    </main>
+    <OrbitEnrollment
+      employeeName="Avery Morgan"
+      plans={PLANS}
+      dependents={[{ id: "jordan", name: "Jordan Morgan" }, { id: "riley", name: "Riley Morgan" }]}
+    />
   );
 }
