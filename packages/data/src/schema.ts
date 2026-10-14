@@ -124,4 +124,36 @@ CREATE TABLE IF NOT EXISTS enrollment_selection_contacts (
   contact_id   TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
   PRIMARY KEY (selection_id, contact_id)
 ) STRICT;
+
+-- STORY-030: covered-contact ownership is enforced in the database itself, not
+-- only in the repository, so a write issued outside @benefit/data cannot cover
+-- a contact belonging to a different employee than the enrollment. The message
+-- is intentionally generic — it exposes no employee or contact identifiers.
+CREATE TRIGGER IF NOT EXISTS trg_selection_contact_ownership_insert
+BEFORE INSERT ON enrollment_selection_contacts
+FOR EACH ROW
+WHEN (SELECT employee_id FROM contacts WHERE id = NEW.contact_id)
+  IS NOT (
+    SELECT e.employee_id
+    FROM enrollment_selections s
+    JOIN enrollments e ON e.id = s.enrollment_id
+    WHERE s.id = NEW.selection_id
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'covered contact does not belong to the enrollment employee');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_selection_contact_ownership_update
+BEFORE UPDATE ON enrollment_selection_contacts
+FOR EACH ROW
+WHEN (SELECT employee_id FROM contacts WHERE id = NEW.contact_id)
+  IS NOT (
+    SELECT e.employee_id
+    FROM enrollment_selections s
+    JOIN enrollments e ON e.id = s.enrollment_id
+    WHERE s.id = NEW.selection_id
+  )
+BEGIN
+  SELECT RAISE(ABORT, 'covered contact does not belong to the enrollment employee');
+END;
 `;
